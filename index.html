@@ -763,6 +763,7 @@
         <select id="w-industry">
           <option value="consumer">Consumer / Retail (3.5×)</option>
           <option value="financial">Financial Services (3.0×)</option>
+          <option value="cre">Commercial Real Estate (2.8×)</option>
           <option value="energy">Energy / Extractives (2.5×)</option>
           <option value="tech">Technology / SaaS (2.0×)</option>
           <option value="healthcare">Healthcare (2.0×)</option>
@@ -826,6 +827,7 @@
         <select id="s-industry" onchange="updateProfile()">
           <option value="consumer">Consumer / Retail</option>
           <option value="financial">Financial Services</option>
+          <option value="cre">Commercial Real Estate</option>
           <option value="energy">Energy / Extractives</option>
           <option value="tech">Technology / SaaS</option>
           <option value="healthcare">Healthcare</option>
@@ -997,7 +999,7 @@
 
 <script>
 const INDUSTRY_MULT = {
-  consumer: 3.5, financial: 3.0, energy: 2.5, tech: 2.0, healthcare: 2.0, manufacturing: 1.5
+  consumer: 3.5, financial: 3.0, energy: 2.5, tech: 2.0, healthcare: 2.0, manufacturing: 1.5, cre: 2.8
 };
 
 const REVENUE_MULT = { sm: 0.6, md: 1.0, lg: 1.8, xl: 3.5 };
@@ -1021,6 +1023,13 @@ let scenarios = [
   { id: 10, name: 'Greenwashing — false ESG claims', pillar: 'G', baseMin: 0.5, baseMax: 12.0, source: 'EU Green Claims Directive, FCA SDR 2024', severity: 'T2', prob: 40 },
   { id: 11, name: 'Worker safety / fatality incident', pillar: 'S', baseMin: 1.0, baseMax: 20.0, source: 'HSA Ireland enforcement, UK HSE case data', severity: 'T2', prob: 15 },
   { id: 12, name: 'Biodiversity / land use violation', pillar: 'E', baseMin: 0.3, baseMax: 8.0, source: 'EU Nature Restoration Law, TNFD framework', severity: 'T1', prob: 20 },
+  { id: 13, name: 'Building energy non-compliance (EPC / MEES)', pillar: 'E', baseMin: 0.1, baseMax: 2.5, source: 'UK MEES Regulations, EU Energy Performance of Buildings Directive', severity: 'T1', prob: 55, category: 'Commercial Real Estate' },
+  { id: 14, name: 'Stranded asset — brown discount', pillar: 'E', baseMin: 1.0, baseMax: 40.0, source: 'MSCI Real Estate ESG data, JLL Stranded Asset research 2023', severity: 'T2', prob: 45, category: 'Commercial Real Estate' },
+  { id: 15, name: 'Embodied carbon misrepresentation', pillar: 'E', baseMin: 0.5, baseMax: 8.0, source: 'RICS Whole Life Carbon Assessment standard, EU Taxonomy alignment claims', severity: 'T2', prob: 30, category: 'Commercial Real Estate' },
+  { id: 16, name: 'Tenant displacement / community harm', pillar: 'S', baseMin: 0.5, baseMax: 12.0, source: 'UN Guiding Principles on Business & Human Rights, Irish RTB case data', severity: 'T2', prob: 35, category: 'Commercial Real Estate' },
+  { id: 17, name: 'Construction site safety failure', pillar: 'S', baseMin: 0.8, baseMax: 15.0, source: 'HSA Ireland enforcement, UK HSE construction sector data 2022-24', severity: 'T2', prob: 25, category: 'Commercial Real Estate' },
+  { id: 18, name: 'Planning / zoning misrepresentation', pillar: 'G', baseMin: 1.0, baseMax: 20.0, source: 'An Bord Pleanála case record, UK Planning Inspectorate enforcement', severity: 'T2', prob: 25, category: 'Commercial Real Estate' },
+  { id: 19, name: 'SFDR / EU Taxonomy greenwashing (fund level)', pillar: 'G', baseMin: 2.0, baseMax: 35.0, source: 'ESMA SFDR enforcement, FCA SDR 2024, EU Taxonomy Regulation Art. 8/9', severity: 'T3', prob: 30, category: 'Commercial Real Estate' },
 ];
 
 let activeIds = new Set();
@@ -1233,7 +1242,7 @@ function renderMain() {
           <div class="risk-name">${s.name}</div>
           <div class="risk-source">${s.source.length > 50 ? s.source.slice(0,50)+'…' : s.source}</div>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);">${s.pillar === 'E' ? 'Environmental' : s.pillar === 'S' ? 'Social' : 'Governance'}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${s.category || (s.pillar === 'E' ? 'Environmental' : s.pillar === 'S' ? 'Social' : 'Governance')}</div>
         <div><div class="severity-select">${sevBtns}</div></div>
         <div class="prob-row">
           <input type="range" class="prob-slider" min="5" max="95" step="5" value="${s.prob}"
