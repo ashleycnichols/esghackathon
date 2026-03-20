@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESG Risk Exposure Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: rgba(0,0,0,0.10);
+    --border-med: rgba(0,0,0,0.18);
+    --text: #1A1916;
+    --text-muted: #6B6860;
+    --text-faint: #9E9C97;
+    --accent: #1A1916;
+    --red: #B83A2A;
+    --red-bg: #FAF0EE;
+    --amber: #8C5C10;
+    --amber-bg: #FBF3E4;
+    --green: #2A6640;
+    --green-bg: #EBF4EF;
+    --blue: #1A4A7A;
+    --blue-bg: #EBF2FA;
+    --pillar-e: #2A6640;
+    --pillar-s: #1A4A7A;
+    --pillar-g: #6B3A8A;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: 64px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+  }
+
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--text);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .logo-mark svg { width: 16px; height: 16px; }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .company-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+
+  .sidebar-section {
+    padding: 0 16px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .sidebar-section:last-child { border-bottom: none; }
+
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+
+  .profile-field {
+    margin-bottom: 10px;
+  }
+
+  .profile-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    padding: 0 4px;
+  }
+
+  .profile-field select, .profile-field input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .profile-field select:focus, .profile-field input:focus {
+    outline: none;
+    border-color: var(--text);
+  }
+
+  /* Pillar filter tabs */
+  .pillar-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .pillar-tab {
+    flex: 1;
+    padding: 5px 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border-med);
+    border-radius: 6px;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+
+  .pillar-tab:hover { background: var(--surface2); }
+  .pillar-tab.active[data-pillar="E"] { background: var(--pillar-e); color: white; border-color: var(--pillar-e); }
+  .pillar-tab.active[data-pillar="S"] { background: var(--pillar-s); color: white; border-color: var(--pillar-s); }
+  .pillar-tab.active[data-pillar="G"] { background: var(--pillar-g); color: white; border-color: var(--pillar-g); }
+  .pillar-tab.active[data-pillar="all"] { background: var(--text); color: white; border-color: var(--text); }
+
+  /* Scenario items in sidebar */
+  .scenario-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.12s;
+    margin-bottom: 2px;
+  }
+
+  .scenario-item:hover { background: var(--surface2); }
+  .scenario-item.active { background: var(--surface2); }
+
+  .scenario-check {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border-med);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s;
+  }
+
+  .scenario-item.checked .scenario-check {
+    background: var(--text);
+    border-color: var(--text);
+  }
+
+  .scenario-check-mark {
+    display: none;
+    width: 8px; height: 8px;
+  }
+
+  .scenario-item.checked .scenario-check-mark { display: block; }
+
+  .scenario-info { flex: 1; min-width: 0; }
+
+  .scenario-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .scenario-range {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 1px;
+  }
+
+  .pillar-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  /* Main content */
+  .main {
+    overflow-y: auto;
+    padding: 24px 28px;
+    background: var(--bg);
+  }
+
+  /* Summary row */
+  .summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .metric-value.danger { color: var(--red); }
+  .metric-value.warning { color: var(--amber); }
+  .metric-value.good { color: var(--green); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+
+  /* Risk table */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  .panel-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border-med);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .btn-sm:hover { background: var(--surface2); }
+  .btn-sm.primary { background: var(--text); color: white; border-color: var(--text); }
+  .btn-sm.primary:hover { opacity: 0.85; }
+
+  /* Active scenarios table */
+  .risk-row {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 24px 180px 80px 1fr 160px 120px 40px;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.1s;
+  }
+
+  .risk-row:last-child { border-bottom: none; }
+  .risk-row:hover { background: var(--bg); }
+
+  .risk-row-header {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 24px 180px 80px 1fr 160px 120px 40px;
+    gap: 12px;
+  }
+
+  .pillar-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .pillar-E { background: #EBF4EF; color: var(--pillar-e); }
+  .pillar-S { background: #EBF2FA; color: var(--pillar-s); }
+  .pillar-G { background: #F4EDFA; color: var(--pillar-g); }
+
+  .risk-name {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .risk-source {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 1px;
+  }
+
+  /* Severity selector */
+  .severity-select {
+    display: flex;
+    gap: 3px;
+  }
+
+  .sev-btn {
+    flex: 1;
+    padding: 4px 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: all 0.1s;
+    min-width: 28px;
+  }
+
+  .sev-btn:hover { border-color: var(--border-med); }
+  .sev-btn.active-T1 { background: #EBF4EF; color: var(--green); border-color: var(--green); }
+  .sev-btn.active-T2 { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); }
+  .sev-btn.active-T3 { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
+  .sev-btn.active-T4 { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+  /* Probability slider */
+  .prob-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .prob-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-med);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .prob-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--border-med);
+  }
+
+  .prob-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  /* Liability output */
+  .liability-cell {
+    text-align: right;
+  }
+
+  .liability-range {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .liability-range.high { color: var(--red); }
+  .liability-range.med { color: var(--amber); }
+  .liability-range.low { color: var(--green); }
+
+  .liability-sub {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  .remove-btn {
+    width: 24px; height: 24px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: none;
+    cursor: pointer;
+    color: var(--text-faint);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.1s;
+    padding: 0;
+  }
+
+  .remove-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+  /* Chart section */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* Waterfall bar */
+  .waterfall-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+    gap: 2px;
+  }
+
+  .wf-seg {
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-faint);
+  }
+
+  .empty-state-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  .empty-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+
+  .empty-sub { font-size: 13px; }
+
+  /* Scenario modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 480px;
+    max-width: 95vw;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  .modal-close {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .modal-body { padding: 20px 22px; }
+
+  .modal-field { margin-bottom: 16px; }
+
+  .modal-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .modal-field input, .modal-field select, .modal-field textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .modal-field textarea { resize: vertical; min-height: 70px; }
+
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* Onboarding wizard */
+  .wizard-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(245, 243, 238, 0.95);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wizard {
+    background: var(--surface);
+    border-radius: 16px;
+    width: 520px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .wizard-header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wizard-step-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+
+  .wizard-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+
+  .wizard-sub { font-size: 13px; color: var(--text-muted); }
+
+  .wizard-body { padding: 24px 32px; }
+
+  .wizard-field { margin-bottom: 16px; }
+  .wizard-field label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+  .wizard-field select, .wizard-field input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    appearance: none;
+  }
+
+  .wizard-footer {
+    padding: 18px 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn-primary {
+    padding: 9px 22px;
+    background: var(--text);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.12s;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+
+  .btn-ghost {
+    padding: 9px 16px;
+    background: none;
+    color: var(--text-muted);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: relative;
+  }
+
+  .tooltip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: white;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-new { background: var(--blue-bg); color: var(--blue); }
+  .tag-high { background: var(--red-bg); color: var(--red); }
+  .tag-med { background: var(--amber-bg); color: var(--amber); }
+</style>
+</head>
+<body>
+
+<!-- Wizard -->
+<div class="wizard-overlay" id="wizard">
+  <div class="wizard">
+    <div class="wizard-header">
+      <div class="wizard-step-label">Step 1 of 1 — Company profile</div>
+      <div class="wizard-title">Set up your risk profile</div>
+      <div class="wizard-sub">This calibrates base costs and industry multipliers for your scenarios.</div>
+    </div>
+    <div class="wizard-body">
+      <div class="wizard-field">
+        <label>Company name</label>
+        <input type="text" id="w-company" placeholder="e.g. Meridian Group Ltd" value="">
+      </div>
+      <div class="wizard-field">
+        <label>Industry</label>
+        <select id="w-industry">
+          <option value="consumer">Consumer / Retail (3.5×)</option>
+          <option value="financial">Financial Services (3.0×)</option>
+          <option value="energy">Energy / Extractives (2.5×)</option>
+          <option value="tech">Technology / SaaS (2.0×)</option>
+          <option value="healthcare">Healthcare (2.0×)</option>
+          <option value="manufacturing">Manufacturing / Industrial (1.5×)</option>
+        </select>
+      </div>
+      <div class="wizard-field">
+        <label>Annual revenue band</label>
+        <select id="w-revenue">
+          <option value="sm">€10M – €50M</option>
+          <option value="md" selected>€50M – €250M</option>
+          <option value="lg">€250M – €1B</option>
+          <option value="xl">€1B+</option>
+        </select>
+      </div>
+      <div class="wizard-field">
+        <label>Primary operating region</label>
+        <select id="w-region">
+          <option value="eu">European Union</option>
+          <option value="uk">United Kingdom</option>
+          <option value="us">United States</option>
+          <option value="apac">Asia-Pacific</option>
+          <option value="global">Global / Multi-region</option>
+        </select>
+      </div>
+    </div>
+    <div class="wizard-footer">
+      <span style="font-size:12px;color:var(--text-faint);">You can update these in the sidebar at any time.</span>
+      <button class="btn-primary" onclick="startApp()">Build my risk profile →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main app -->
+<div class="app" id="app" style="display:none;">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="8" r="5" stroke="white" stroke-width="1.5"/>
+          <path d="M8 4L8 8L11 10" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      Sentinel ESG
+    </div>
+    <div class="header-meta">
+      <span id="header-date" style="font-size:12px;"></span>
+      <div class="company-badge" id="company-badge" onclick="document.getElementById('wizard').style.display='flex'">—</div>
+      <button class="btn-sm primary" onclick="openCustomModal()">+ Add custom scenario</button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Company profile</div>
+      <div class="profile-field">
+        <label>Industry</label>
+        <select id="s-industry" onchange="updateProfile()">
+          <option value="consumer">Consumer / Retail</option>
+          <option value="financial">Financial Services</option>
+          <option value="energy">Energy / Extractives</option>
+          <option value="tech">Technology / SaaS</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="manufacturing">Manufacturing</option>
+        </select>
+      </div>
+      <div class="profile-field">
+        <label>Revenue band</label>
+        <select id="s-revenue" onchange="updateProfile()">
+          <option value="sm">€10M – €50M</option>
+          <option value="md">€50M – €250M</option>
+          <option value="lg">€250M – €1B</option>
+          <option value="xl">€1B+</option>
+        </select>
+      </div>
+      <div class="profile-field">
+        <label>Region</label>
+        <select id="s-region" onchange="updateProfile()">
+          <option value="eu">European Union</option>
+          <option value="uk">United Kingdom</option>
+          <option value="us">United States</option>
+          <option value="apac">Asia-Pacific</option>
+          <option value="global">Global</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Risk scenarios</div>
+      <div class="pillar-tabs">
+        <div class="pillar-tab active" data-pillar="all" onclick="filterPillar('all')">All</div>
+        <div class="pillar-tab" data-pillar="E" onclick="filterPillar('E')">E</div>
+        <div class="pillar-tab" data-pillar="S" onclick="filterPillar('S')">S</div>
+        <div class="pillar-tab" data-pillar="G" onclick="filterPillar('G')">G</div>
+      </div>
+      <div id="scenario-list"></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Summary metrics -->
+    <div class="summary-row">
+      <div class="metric-card">
+        <div class="metric-label">Total exposure (min)</div>
+        <div class="metric-value danger" id="m-min">—</div>
+        <div class="metric-sub">Risk-adjusted minimum</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total exposure (max)</div>
+        <div class="metric-value danger" id="m-max">—</div>
+        <div class="metric-sub">Worst-case scenario</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Active scenarios</div>
+        <div class="metric-value" id="m-count">0</div>
+        <div class="metric-sub" id="m-pillar-split">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Highest single risk</div>
+        <div class="metric-value warning" id="m-top">—</div>
+        <div class="metric-sub" id="m-top-name">No active scenarios</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Exposure by pillar</span>
+        </div>
+        <div style="padding:20px;" id="pillar-chart-area">
+          <div style="color:var(--text-faint);font-size:13px;text-align:center;padding:20px 0;">Add scenarios to see breakdown</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Severity distribution</span>
+        </div>
+        <div style="padding:20px;" id="sev-chart-area">
+          <div style="color:var(--text-faint);font-size:13px;text-align:center;padding:20px 0;">Add scenarios to see distribution</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active scenarios table -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Active risk scenarios</span>
+        <div class="panel-actions">
+          <button class="btn-sm" onclick="exportSummary()">Export summary</button>
+          <button class="btn-sm" onclick="stressTest()">Stress test all → T4</button>
+        </div>
+      </div>
+      <div class="risk-row-header">
+        <div></div>
+        <div>Scenario</div>
+        <div>Category</div>
+        <div>Severity tier</div>
+        <div>Probability</div>
+        <div style="text-align:right">Liability range</div>
+        <div></div>
+      </div>
+      <div id="active-scenarios">
+        <div class="empty-state">
+          <div class="empty-state-icon">◎</div>
+          <div class="empty-title">No active scenarios</div>
+          <div class="empty-sub">Select scenarios from the sidebar to begin your risk assessment.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Custom scenario modal -->
+<div class="modal-overlay" id="custom-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add custom scenario</span>
+      <button class="modal-close" onclick="closeCustomModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <label>Scenario name</label>
+        <input type="text" id="cm-name" placeholder="e.g. Supplier data breach in APAC">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="modal-field">
+          <label>ESG pillar</label>
+          <select id="cm-pillar">
+            <option value="E">Environmental (E)</option>
+            <option value="S">Social (S)</option>
+            <option value="G">Governance (G)</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Severity tier</label>
+          <select id="cm-severity">
+            <option value="T1">T1 — Contained</option>
+            <option value="T2" selected>T2 — Public</option>
+            <option value="T3">T3 — Legal action</option>
+            <option value="T4">T4 — Reputational collapse</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="modal-field">
+          <label>Base cost min (€M)</label>
+          <input type="number" id="cm-min" placeholder="0.5" step="0.1" min="0">
+        </div>
+        <div class="modal-field">
+          <label>Base cost max (€M)</label>
+          <input type="number" id="cm-max" placeholder="5" step="0.1" min="0">
+        </div>
+      </div>
+      <div class="modal-field">
+        <label>Data source / notes</label>
+        <textarea id="cm-source" placeholder="e.g. Based on GDPR enforcement tracker avg 2023-24"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="closeCustomModal()">Cancel</button>
+      <button class="btn-sm primary" onclick="addCustomScenario()">Add to profile</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INDUSTRY_MULT = {
+  consumer: 3.5, financial: 3.0, energy: 2.5, tech: 2.0, healthcare: 2.0, manufacturing: 1.5
+};
+
+const REVENUE_MULT = { sm: 0.6, md: 1.0, lg: 1.8, xl: 3.5 };
+
+const SEV_MULT = { T1: 1, T2: 2.5, T3: 5, T4: 10 };
+
+const SEV_LABELS = { T1: 'T1 — Contained', T2: 'T2 — Public', T3: 'T3 — Legal', T4: 'T4 — Collapse' };
+
+const PILLAR_COLORS = { E: '#2A6640', S: '#1A4A7A', G: '#6B3A8A' };
+
+let scenarios = [
+  { id: 1, name: 'Supply chain child / forced labor', pillar: 'S', baseMin: 1.0, baseMax: 15.0, source: 'ILO reports, OECD Guidelines, UK Modern Slavery Act cases', severity: 'T2', prob: 40 },
+  { id: 2, name: 'Emissions misreporting (Scope 1/2)', pillar: 'E', baseMin: 0.5, baseMax: 4.0, source: 'EPA enforcement 2022-24, EU ETS penalty data', severity: 'T1', prob: 25 },
+  { id: 3, name: 'Environmental spill / community harm', pillar: 'E', baseMin: 2.0, baseMax: 50.0, source: 'EU Environmental Liability Directive case precedent', severity: 'T2', prob: 15 },
+  { id: 4, name: 'CSRD Scope 3 non-disclosure', pillar: 'E', baseMin: 0.05, baseMax: 0.5, source: 'ESRS enforcement guidance 2024, CSRD fines structure', severity: 'T1', prob: 60 },
+  { id: 5, name: 'Workplace discrimination / harassment', pillar: 'S', baseMin: 0.5, baseMax: 8.0, source: 'EEOC settlement data, Irish WRC awards 2021-24', severity: 'T2', prob: 30 },
+  { id: 6, name: 'Data privacy breach (social framing)', pillar: 'S', baseMin: 2.0, baseMax: 20.0, source: 'GDPR Enforcement Tracker enforcementracker.com', severity: 'T2', prob: 35 },
+  { id: 7, name: 'FCPA / UK Bribery Act violation', pillar: 'G', baseMin: 5.0, baseMax: 500.0, source: 'Stanford FCPA Clearinghouse, SFO case database', severity: 'T3', prob: 20 },
+  { id: 8, name: 'Board misconduct / fiduciary failure', pillar: 'G', baseMin: 3.0, baseMax: 30.0, source: 'SEC enforcement actions, Companies Act Ireland', severity: 'T2', prob: 20 },
+  { id: 9, name: 'Financial misreporting (ESG framing)', pillar: 'G', baseMin: 10.0, baseMax: 100.0, source: 'SEC Climate Disclosure Rule, FCA reporting cases', severity: 'T3', prob: 15 },
+  { id: 10, name: 'Greenwashing — false ESG claims', pillar: 'G', baseMin: 0.5, baseMax: 12.0, source: 'EU Green Claims Directive, FCA SDR 2024', severity: 'T2', prob: 40 },
+  { id: 11, name: 'Worker safety / fatality incident', pillar: 'S', baseMin: 1.0, baseMax: 20.0, source: 'HSA Ireland enforcement, UK HSE case data', severity: 'T2', prob: 15 },
+  { id: 12, name: 'Biodiversity / land use violation', pillar: 'E', baseMin: 0.3, baseMax: 8.0, source: 'EU Nature Restoration Law, TNFD framework', severity: 'T1', prob: 20 },
+];
+
+let activeIds = new Set();
+let profile = { company: '', industry: 'consumer', revenue: 'md', region: 'eu' };
+let pillarFilter = 'all';
+let customIdCounter = 100;
+
+function startApp() {
+  const name = document.getElementById('w-company').value.trim() || 'Your Company';
+  profile.company = name;
+  profile.industry = document.getElementById('w-industry').value;
+  profile.revenue = document.getElementById('w-revenue').value;
+  profile.region = document.getElementById('w-region').value;
+
+  document.getElementById('company-badge').textContent = name;
+  document.getElementById('s-industry').value = profile.industry;
+  document.getElementById('s-revenue').value = profile.revenue;
+  document.getElementById('s-region').value = profile.region;
+
+  document.getElementById('wizard').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+
+  const d = new Date();
+  document.getElementById('header-date').textContent = d.toLocaleDateString('en-IE', { day:'numeric', month:'short', year:'numeric' });
+
+  renderSidebar();
+  renderMain();
+}
+
+function updateProfile() {
+  profile.industry = document.getElementById('s-industry').value;
+  profile.revenue = document.getElementById('s-revenue').value;
+  profile.region = document.getElementById('s-region').value;
+  renderMain();
+}
+
+function filterPillar(p) {
+  pillarFilter = p;
+  document.querySelectorAll('.pillar-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.pillar === p);
+  });
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('scenario-list');
+  const visible = pillarFilter === 'all' ? scenarios : scenarios.filter(s => s.pillar === pillarFilter);
+
+  list.innerHTML = visible.map(s => `
+    <div class="scenario-item ${activeIds.has(s.id) ? 'checked' : ''}" onclick="toggleScenario(${s.id})">
+      <div class="pillar-dot" style="background:${PILLAR_COLORS[s.pillar]}"></div>
+      <div class="scenario-check">
+        <svg class="scenario-check-mark" viewBox="0 0 8 8" fill="none">
+          <path d="M1 4L3 6L7 2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="scenario-info">
+        <div class="scenario-name">${s.name}</div>
+        <div class="scenario-range">€${s.baseMin}M – €${s.baseMax}M base</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleScenario(id) {
+  if (activeIds.has(id)) {
+    activeIds.delete(id);
+  } else {
+    activeIds.add(id);
+  }
+  renderSidebar();
+  renderMain();
+}
+
+function calcLiability(s) {
+  const indMult = INDUSTRY_MULT[profile.industry] || 1;
+  const revMult = REVENUE_MULT[profile.revenue] || 1;
+  const sevMult = SEV_MULT[s.severity] || 1;
+  const probFactor = (s.prob || 50) / 100;
+
+  const rawMin = s.baseMin * indMult * revMult * sevMult;
+  const rawMax = s.baseMax * indMult * revMult * sevMult;
+
+  return {
+    min: rawMin * probFactor,
+    max: rawMax * probFactor,
+    rawMin,
+    rawMax
+  };
+}
+
+function fmtM(n) {
+  if (n >= 1000) return '€' + (n/1000).toFixed(1) + 'B';
+  if (n >= 1) return '€' + n.toFixed(1) + 'M';
+  return '€' + (n * 1000).toFixed(0) + 'K';
+}
+
+function getSeverityLevel(max) {
+  if (max >= 50) return 'high';
+  if (max >= 10) return 'med';
+  return 'low';
+}
+
+function renderMain() {
+  const active = scenarios.filter(s => activeIds.has(s.id));
+
+  // Summary
+  let totalMin = 0, totalMax = 0;
+  let topVal = 0, topName = '—';
+  const pillarTotals = { E: 0, S: 0, G: 0 };
+  const sevCounts = { T1: 0, T2: 0, T3: 0, T4: 0 };
+
+  active.forEach(s => {
+    const { min, max } = calcLiability(s);
+    totalMin += min;
+    totalMax += max;
+    pillarTotals[s.pillar] += max;
+    sevCounts[s.severity] = (sevCounts[s.severity] || 0) + 1;
+    if (max > topVal) { topVal = max; topName = s.name; }
+  });
+
+  document.getElementById('m-min').textContent = active.length ? fmtM(totalMin) : '—';
+  document.getElementById('m-max').textContent = active.length ? fmtM(totalMax) : '—';
+  document.getElementById('m-count').textContent = active.length;
+  document.getElementById('m-top').textContent = active.length ? fmtM(topVal) : '—';
+  document.getElementById('m-top-name').textContent = active.length ? topName : 'No active scenarios';
+
+  const es = active.filter(s=>s.pillar==='E').length;
+  const ss = active.filter(s=>s.pillar==='S').length;
+  const gs = active.filter(s=>s.pillar==='G').length;
+  document.getElementById('m-pillar-split').textContent = active.length
+    ? `E:${es}  S:${ss}  G:${gs}`
+    : '—';
+
+  // Pillar chart
+  const pArea = document.getElementById('pillar-chart-area');
+  if (active.length === 0) {
+    pArea.innerHTML = '<div style="color:var(--text-faint);font-size:13px;text-align:center;padding:20px 0;">Add scenarios to see breakdown</div>';
+  } else {
+    const totalPillar = pillarTotals.E + pillarTotals.S + pillarTotals.G || 1;
+    const bars = ['E','S','G'].map(p => {
+      const pct = Math.round((pillarTotals[p] / totalPillar) * 100);
+      const pillarNames = { E: 'Environmental', S: 'Social', G: 'Governance' };
+      return `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:80px;font-size:12px;color:var(--text-muted);font-weight:500;">${pillarNames[p]}</div>
+          <div style="flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${PILLAR_COLORS[p]};border-radius:4px;transition:width 0.5s ease;"></div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);min-width:32px;text-align:right;">${pct}%</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text);min-width:60px;text-align:right;">${fmtM(pillarTotals[p])}</div>
+        </div>
+      `;
+    }).join('');
+    pArea.innerHTML = `<div>${bars}</div>`;
+  }
+
+  // Severity distribution
+  const sArea = document.getElementById('sev-chart-area');
+  if (active.length === 0) {
+    sArea.innerHTML = '<div style="color:var(--text-faint);font-size:13px;text-align:center;padding:20px 0;">Add scenarios to see distribution</div>';
+  } else {
+    const sevColors = { T1: '#2A6640', T2: '#1A4A7A', T3: '#8C5C10', T4: '#B83A2A' };
+    const sevLabels = { T1: 'T1 Contained', T2: 'T2 Public', T3: 'T3 Legal', T4: 'T4 Collapse' };
+    const sevHtml = ['T1','T2','T3','T4'].map(t => {
+      const count = sevCounts[t] || 0;
+      const pct = active.length ? Math.round((count / active.length) * 100) : 0;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:80px;font-size:12px;color:var(--text-muted);font-weight:500;">${sevLabels[t]}</div>
+          <div style="flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${sevColors[t]};border-radius:4px;transition:width 0.5s ease;"></div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);min-width:32px;text-align:right;">${count}</div>
+        </div>
+      `;
+    }).join('');
+    sArea.innerHTML = `<div>${sevHtml}</div>`;
+  }
+
+  // Active scenarios table
+  const container = document.getElementById('active-scenarios');
+  if (active.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">◎</div>
+        <div class="empty-title">No active scenarios</div>
+        <div class="empty-sub">Select scenarios from the sidebar to begin your risk assessment.</div>
+      </div>`;
+    return;
+  }
+
+  const sorted = [...active].sort((a,b) => {
+    const la = calcLiability(a).max;
+    const lb = calcLiability(b).max;
+    return lb - la;
+  });
+
+  container.innerHTML = sorted.map(s => {
+    const { min, max, rawMin, rawMax } = calcLiability(s);
+    const level = getSeverityLevel(max);
+    const sevBtns = ['T1','T2','T3','T4'].map(t =>
+      `<button class="sev-btn ${s.severity === t ? 'active-'+t : ''}" onclick="setSeverity(${s.id},'${t}',event)">${t}</button>`
+    ).join('');
+
+    return `
+      <div class="risk-row">
+        <div><span class="pillar-badge pillar-${s.pillar}">${s.pillar}</span></div>
+        <div>
+          <div class="risk-name">${s.name}</div>
+          <div class="risk-source">${s.source.length > 50 ? s.source.slice(0,50)+'…' : s.source}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);">${s.pillar === 'E' ? 'Environmental' : s.pillar === 'S' ? 'Social' : 'Governance'}</div>
+        <div><div class="severity-select">${sevBtns}</div></div>
+        <div class="prob-row">
+          <input type="range" class="prob-slider" min="5" max="95" step="5" value="${s.prob}"
+            oninput="setProb(${s.id}, this.value, event)">
+          <span class="prob-val" id="prob-val-${s.id}">${s.prob}%</span>
+        </div>
+        <div class="liability-cell">
+          <div class="liability-range ${level}">${fmtM(min)} – ${fmtM(max)}</div>
+          <div class="liability-sub">raw: ${fmtM(rawMin)}–${fmtM(rawMax)}</div>
+        </div>
+        <button class="remove-btn" onclick="removeScenario(${s.id})">×</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function setSeverity(id, tier, e) {
+  e.stopPropagation();
+  const s = scenarios.find(x => x.id === id);
+  if (s) { s.severity = tier; renderMain(); }
+}
+
+function setProb(id, val, e) {
+  e.stopPropagation();
+  const s = scenarios.find(x => x.id === id);
+  if (s) {
+    s.prob = parseInt(val);
+    const el = document.getElementById('prob-val-' + id);
+    if (el) el.textContent = val + '%';
+    renderMain();
+  }
+}
+
+function removeScenario(id) {
+  activeIds.delete(id);
+  renderSidebar();
+  renderMain();
+}
+
+function stressTest() {
+  const active = scenarios.filter(s => activeIds.has(s.id));
+  active.forEach(s => { s.severity = 'T4'; });
+  renderMain();
+}
+
+function openCustomModal() {
+  document.getElementById('custom-modal').classList.add('open');
+}
+
+function closeCustomModal() {
+  document.getElementById('custom-modal').classList.remove('open');
+}
+
+function addCustomScenario() {
+  const name = document.getElementById('cm-name').value.trim();
+  const minVal = parseFloat(document.getElementById('cm-min').value);
+  const maxVal = parseFloat(document.getElementById('cm-max').value);
+  if (!name || isNaN(minVal) || isNaN(maxVal)) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+  const s = {
+    id: customIdCounter++,
+    name,
+    pillar: document.getElementById('cm-pillar').value,
+    baseMin: minVal,
+    baseMax: maxVal,
+    source: document.getElementById('cm-source').value || 'Custom — user defined',
+    severity: document.getElementById('cm-severity').value,
+    prob: 50
+  };
+  scenarios.push(s);
+  activeIds.add(s.id);
+  closeCustomModal();
+  document.getElementById('cm-name').value = '';
+  document.getElementById('cm-min').value = '';
+  document.getElementById('cm-max').value = '';
+  document.getElementById('cm-source').value = '';
+  renderSidebar();
+  renderMain();
+}
+
+function exportSummary() {
+  const active = scenarios.filter(s => activeIds.has(s.id));
+  if (!active.length) { alert('No active scenarios to export.'); return; }
+
+  let csv = 'Scenario,Pillar,Severity,Probability,Liability Min (€M),Liability Max (€M),Source\n';
+  active.forEach(s => {
+    const { min, max } = calcLiability(s);
+    csv += `"${s.name}",${s.pillar},${s.severity},${s.prob}%,${min.toFixed(2)},${max.toFixed(2)},"${s.source}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sentinel-esg-export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
